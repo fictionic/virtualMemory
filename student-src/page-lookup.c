@@ -11,23 +11,18 @@
  * @return The physical frame number of the page we are accessing.
  */
 pfn_t pagetable_lookup(vpn_t vpn, int write) {
-   pfn_t pfn = 0; 
 
-   pte_t pte = current_pagetable[vpn];
+	pfn_t pfn = 0;
 
-   /* check if it's valid */
-   if(!pte.valid) {
-	   pagefault_handler(vpn, write);
-   }
+	pte_t pte = current_pagetable[vpn];
 
-   /* FIX ME - Part 2 
-    * Determine the PFN corresponding to the passed in VPN.
-    * current_pagetable variable accesses the process page table.
-    * if the pagetable entry is not valid, increment count_pagefaults, call
-    * pagefault_handler (traps to OS, returns frame number), and change pagetable
-    * entry to now be valid
-    */
-
-
-   return pfn;
+	/* check if it's valid */
+	if(!pte.valid) {
+		count_pagefaults++;
+		pfn = pagefault_handler(vpn, write);
+		pte.valid = (char)1;
+	} else {
+		pfn = pte.pfn;
+	}
+	return pte.pfn;
 }
