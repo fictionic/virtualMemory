@@ -33,7 +33,7 @@ pfn_t pagefault_handler(vpn_t request_vpn, int write) {
 	victim_vpn = rlt[victim_pfn].vpn;
 	victim_pcb = rlt[victim_pfn].pcb;
 
-	/* 
+	/*
 	 * FIX ME : Problem 4
 	 * If victim page is occupied - if it is not the pcb will be NULL:
 	 *
@@ -43,10 +43,10 @@ pfn_t pagefault_handler(vpn_t request_vpn, int write) {
 	 */
 
 	if(victim_pcb != NULL) {
-		if(victim_pcb.pagetable.dirty) {
+		if(victim_pcb->pagetable[victim_vpn].dirty) {
 			page_to_disk(victim_pfn, victim_vpn, victim_pcb->pid);
 		}
-		victim_pcb->pagetable->valid = (unsigned char)0;
+		victim_pcb->pagetable[victim_vpn].valid = (unsigned char)0;
 		tlb_clearone(victim_vpn);
 	}
 
@@ -55,13 +55,18 @@ pfn_t pagefault_handler(vpn_t request_vpn, int write) {
 
 
 	/* FIX ME */
-	/* Update the reverse lookup table to replace the victim entry info with this 
+	/* Update the reverse lookup table to replace the victim entry info with this
 	 * process' info instead (pcb and vpn)
 	 * Update the current process' page table (pfn and valid)
 	 */
+	rlt[victim_pfn].vpn = request_vpn;
+	rlt[victim_pfn].pcb = current;
+
+	current->pagetable[request_vpn].valid = (unsigned char) 1;
+	current->pagetable[request_vpn].pfn = victim_pfn;
 
 	/*
-	 * Retreive the page from disk. Note that is really a lie: we save pages in
+	 * Retrieve the page from disk. Note that is really a lie: we save pages in
 	 * memory (since doing file I/O for this simulation would be annoying and
 	 * wouldn't add that much to the learning). Also, if the page technically
 	 * does't exist yet (i.e., the page has never been accessed yet, we return a
@@ -73,4 +78,3 @@ pfn_t pagefault_handler(vpn_t request_vpn, int write) {
 
 	return victim_pfn;
 }
-

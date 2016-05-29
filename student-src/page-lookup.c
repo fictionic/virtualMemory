@@ -19,6 +19,6 @@ pfn_t pagetable_lookup(vpn_t vpn, int write) {
 		count_pagefaults++;
 		pte.pfn = pagefault_handler(vpn, write);
 		pte.valid = (unsigned char)1;
-	} 
+	}
 	return pte.pfn;
 }
