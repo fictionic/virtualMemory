@@ -12,17 +12,13 @@
  */
 pfn_t pagetable_lookup(vpn_t vpn, int write) {
 
-	pfn_t pfn = 0;
-
 	pte_t pte = current_pagetable[vpn];
 
 	/* check if it's valid */
 	if(!pte.valid) {
 		count_pagefaults++;
-		pfn = pagefault_handler(vpn, write);
+		pte.pfn = pagefault_handler(vpn, write);
 		pte.valid = (char)1;
-	} else {
-		pfn = pte.pfn;
-	}
+	} 
 	return pte.pfn;
 }
