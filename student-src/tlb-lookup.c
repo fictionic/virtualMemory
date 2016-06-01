@@ -31,13 +31,12 @@ pfn_t tlb_lookup(vpn_t vpn, int write) {
 	 */
 	int i;
 	int hit = 0;
-	tlbe_t tlbe;
+	tlbe_t *tlbe;
 	for(i=0; i<tlb_size; i++) {
-		tlbe = tlb[i];
-		printf("tlbe %d has valid == %d\n", i, tlbe.valid);
-		if(tlbe.vpn == vpn && tlbe.valid == 1) {
+		tlbe = &tlb[i];
+		if(tlbe->vpn == vpn && tlbe->valid == 1) {
 			recent_tlbe_index = i;
-			pfn = tlbe.pfn;
+			pfn = tlbe->pfn;
 			count_tlbhits++;
 			hit = 1;
 			break;
@@ -55,8 +54,8 @@ pfn_t tlb_lookup(vpn_t vpn, int write) {
 		/* first check for invalid entries */
 		int found_invalid = 0;
 		for(i=0; i<tlb_size; i++) {
-			tlbe = tlb[i];
-			if(tlbe.valid == 0) {
+			tlbe = &tlb[i];
+			if(tlbe->valid == 0) {
 				found_invalid = 1;
 				break;
 			}
@@ -67,9 +66,9 @@ pfn_t tlb_lookup(vpn_t vpn, int write) {
 			for(i=recent_tlbe_index; i != recent_tlbe_index || flag == 0; i++) {
 				if(i == tlb_size)
 					i = 0;
-				tlbe = tlb[i];
-				if(tlbe.used == 1) {
-					tlbe.used = 0;
+				tlbe = &tlb[i];
+				if(tlbe->used == 1) {
+					tlbe->used = 0;
 				} else {
 					break;
 				}
@@ -77,11 +76,9 @@ pfn_t tlb_lookup(vpn_t vpn, int write) {
 			}
 		}
 		/* evict the victim entry */
-		tlbe.valid = 1;
-		tlbe.vpn = vpn;
-		printf("tlbe %d has pfn %d, valid = %d\n", i, pfn, tlbe.valid);
-		printf("%x %x\n", &tlbe, &tlb[i]);
-		tlbe.pfn = pfn;
+		tlbe->valid = 1;
+		tlbe->vpn = vpn;
+		tlbe->pfn = pfn;
 		/* update the recent index */
 		recent_tlbe_index = i;
 	}
@@ -91,11 +88,19 @@ pfn_t tlb_lookup(vpn_t vpn, int write) {
 	 * used and if we had a write, dirty. We also need to update the page
 	 * table entry in memory with the same data.
 	 */
-	tlbe.used = 1;
+	tlbe->used = 1;
 	if(write) {
-		tlbe.dirty = 1;
+		tlbe->dirty = 1;
 		current_pagetable[vpn].dirty = 1;
 	}
+
+	printf("=====================\n");
+	printf("vpn | pfn | v | d | u\n");
+	for(i=0; i<tlb_size; i++) {
+		printf(" %x  |  %x  | %d | %d | %d\n", tlb[i].vpn, tlb[i].pfn, tlb[i].valid, tlb[i].dirty, tlb[i].used);
+	}
+	printf("====================\n");
+
 	return pfn;
 }
 
