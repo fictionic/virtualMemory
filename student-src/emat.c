@@ -15,7 +15,7 @@
 double compute_emat_all() {
 
 	double tlb_hit_time = (count_tlbhits) * MEMORY_ACCESS_TIME;
-	double pagetable_hit_time = 2 * (count_reads + count_writes - count_tlbhits) * MEMORY_ACCESS_TIME;
+	double pagetable_hit_time = 2 * (count_reads + count_writes - count_tlbhits - count_diskaccesses) * MEMORY_ACCESS_TIME;
 	double pagefault_time = (count_pagefaults) * (DISK_ACCESS_TIME + MEMORY_ACCESS_TIME);
 	return (tlb_hit_time + pagetable_hit_time + pagefault_time) / (count_writes + count_reads);
 
@@ -24,7 +24,7 @@ double compute_emat_all() {
 double compute_emat_unforced() {
 
 	double tlb_hit_time = (count_tlbhits) * MEMORY_ACCESS_TIME;
-	double pagetable_hit_time = 2 * (count_reads + count_writes - count_tlbhits) * MEMORY_ACCESS_TIME;
+	double pagetable_hit_time = 2 * (count_reads + count_writes - count_tlbhits - count_diskaccesses) * MEMORY_ACCESS_TIME;
 	double pagefault_time = (count_diskaccesses) * (DISK_ACCESS_TIME + MEMORY_ACCESS_TIME);
 	return (tlb_hit_time + pagetable_hit_time + pagefault_time) / (count_writes + count_reads);
 
