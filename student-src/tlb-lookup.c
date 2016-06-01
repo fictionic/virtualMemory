@@ -16,7 +16,6 @@ int recent_tlbe_index;
  * @return The physical frame number of the page we are accessing.
  */
 pfn_t tlb_lookup(vpn_t vpn, int write) {
-	/* currently just skips tlb and goes to pagetable */
 	pfn_t pfn;
 
 	/* 
@@ -35,7 +34,8 @@ pfn_t tlb_lookup(vpn_t vpn, int write) {
 	tlbe_t tlbe;
 	for(i=0; i<tlb_size; i++) {
 		tlbe = tlb[i];
-		if(tlbe.vpn == vpn && tlbe.valid) {
+		printf("tlbe %d has valid == %d\n", i, tlbe.valid);
+		if(tlbe.vpn == vpn && tlbe.valid == 1) {
 			recent_tlbe_index = i;
 			pfn = tlbe.pfn;
 			count_tlbhits++;
@@ -51,26 +51,39 @@ pfn_t tlb_lookup(vpn_t vpn, int write) {
 	 */
 	if(!hit) {
 		pfn = pagetable_lookup(vpn, write);
-		/* check for invalid entries */
+		/* find a pte to evict */
+		/* first check for invalid entries */
 		int found_invalid = 0;
 		for(i=0; i<tlb_size; i++) {
 			tlbe = tlb[i];
-			if(!tlbe.valid) {
+			if(tlbe.valid == 0) {
 				found_invalid = 1;
 				break;
 			}
 		}
 		/* do clock algorithm */
 		if(!found_invalid) {
-			int end_index = recent_tlbe_index - 1;
-			if(end_index < 0)
-				end_index += tlb_size;
-			for(i=recent_tlbe_index; i != end_index; i++) {
+			int flag = 0;
+			for(i=recent_tlbe_index; i != recent_tlbe_index || flag == 0; i++) {
 				if(i == tlb_size)
 					i = 0;
-				// do rest of alg
+				tlbe = tlb[i];
+				if(tlbe.used == 1) {
+					tlbe.used = 0;
+				} else {
+					break;
+				}
+				flag = 1;
 			}
 		}
+		/* evict the victim entry */
+		tlbe.valid = 1;
+		tlbe.vpn = vpn;
+		printf("tlbe %d has pfn %d, valid = %d\n", i, pfn, tlbe.valid);
+		printf("%x %x\n", &tlbe, &tlb[i]);
+		tlbe.pfn = pfn;
+		/* update the recent index */
+		recent_tlbe_index = i;
 	}
 
 	/*
