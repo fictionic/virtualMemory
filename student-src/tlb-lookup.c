@@ -16,7 +16,6 @@
 pfn_t tlb_lookup(vpn_t vpn, int write) {
     /* currently just skips tlb and goes to pagetable */
    pfn_t pfn;
-   pfn = pagetable_lookup(vpn, write);	
 
    /* 
     * FIX ME : Step 5
@@ -29,19 +28,37 @@ pfn_t tlb_lookup(vpn_t vpn, int write) {
     * Search the TLB - hit if find valid entry with given VPN 
     * Increment count_tlbhits on hit. 
     */
+   int i;
+   int hit = 0;
+   tlbe_t tlbe;
+   for(i=0; i<tlb_size; i++) {
+	   tlbe = tlb[i];
+	   if(tlbe.vpn == vpn && tlbe.valid) {
+		   pfn = tlbe.pfn;
+		   count_tlbhits++;
+		   hit = 1;
+		   break;
+	   }
+   }
     
    /* 
     * If it was a miss, call the page table lookup to get the pfn
     * Add current page as TLB entry. Replace any invalid entry first, 
     * then do a clock-sweep to find a victim (entry to be replaced).
     */
-
+   if(!hit) {
+	   pfn = pagetable_lookup(vpn, write);
+   }
 
    /*
     * In all cases perform TLB house keeping. This means marking the found TLB entry as
     * used and if we had a write, dirty. We also need to update the page
     * table entry in memory with the same data.
     */
+   tlbe.used = 1;
+   if(write) {
+	   tlbe.dirty = 1;
+   }
 
    return pfn;
 }
