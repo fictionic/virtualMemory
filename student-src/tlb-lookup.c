@@ -5,6 +5,8 @@
 #include "global.h" /* for tlb_size */
 #include "statistics.h"
 
+int recent_tlbe_index;
+
 /*******************************************************************************
  * Looks up an address in the TLB. If no entry is found, calls pagetable_lookup()
  * to get the entry from the page table instead
@@ -14,52 +16,73 @@
  * @return The physical frame number of the page we are accessing.
  */
 pfn_t tlb_lookup(vpn_t vpn, int write) {
-    /* currently just skips tlb and goes to pagetable */
-   pfn_t pfn;
+	/* currently just skips tlb and goes to pagetable */
+	pfn_t pfn;
 
-   /* 
-    * FIX ME : Step 5
-    * Note that tlb is an array with memory already allocated and initialized to 0/null
-    * meaning that you don't need special cases for a not-full tlb, the valid field
-    * will be 0 for both invalid and empty tlb entries, so you can just check that!
-    */
+	/* 
+	 * FIX ME : Step 5
+	 * Note that tlb is an array with memory already allocated and initialized to 0/null
+	 * meaning that you don't need special cases for a not-full tlb, the valid field
+	 * will be 0 for both invalid and empty tlb entries, so you can just check that!
+	 */
 
-   /* 
-    * Search the TLB - hit if find valid entry with given VPN 
-    * Increment count_tlbhits on hit. 
-    */
-   int i;
-   int hit = 0;
-   tlbe_t tlbe;
-   for(i=0; i<tlb_size; i++) {
-	   tlbe = tlb[i];
-	   if(tlbe.vpn == vpn && tlbe.valid) {
-		   pfn = tlbe.pfn;
-		   count_tlbhits++;
-		   hit = 1;
-		   break;
-	   }
-   }
-    
-   /* 
-    * If it was a miss, call the page table lookup to get the pfn
-    * Add current page as TLB entry. Replace any invalid entry first, 
-    * then do a clock-sweep to find a victim (entry to be replaced).
-    */
-   if(!hit) {
-	   pfn = pagetable_lookup(vpn, write);
-   }
+	/* 
+	 * Search the TLB - hit if find valid entry with given VPN 
+	 * Increment count_tlbhits on hit. 
+	 */
+	int i;
+	int hit = 0;
+	tlbe_t tlbe;
+	for(i=0; i<tlb_size; i++) {
+		tlbe = tlb[i];
+		if(tlbe.vpn == vpn && tlbe.valid) {
+			recent_tlbe_index = i;
+			pfn = tlbe.pfn;
+			count_tlbhits++;
+			hit = 1;
+			break;
+		}
+	}
 
-   /*
-    * In all cases perform TLB house keeping. This means marking the found TLB entry as
-    * used and if we had a write, dirty. We also need to update the page
-    * table entry in memory with the same data.
-    */
-   tlbe.used = 1;
-   if(write) {
-	   tlbe.dirty = 1;
-   }
+	/* 
+	 * If it was a miss, call the page table lookup to get the pfn
+	 * Add current page as TLB entry. Replace any invalid entry first, 
+	 * then do a clock-sweep to find a victim (entry to be replaced).
+	 */
+	if(!hit) {
+		pfn = pagetable_lookup(vpn, write);
+		/* check for invalid entries */
+		int found_invalid = 0;
+		for(i=0; i<tlb_size; i++) {
+			tlbe = tlb[i];
+			if(!tlbe.valid) {
+				found_invalid = 1;
+				break;
+			}
+		}
+		/* do clock algorithm */
+		if(!found_invalid) {
+			int end_index = recent_tlbe_index - 1;
+			if(end_index < 0)
+				end_index += tlb_size;
+			for(i=recent_tlbe_index; i != end_index; i++) {
+				if(i == tlb_size)
+					i = 0;
+				// do rest of alg
+			}
+		}
+	}
 
-   return pfn;
+	/*
+	 * In all cases perform TLB house keeping. This means marking the found TLB entry as
+	 * used and if we had a write, dirty. We also need to update the page
+	 * table entry in memory with the same data.
+	 */
+	tlbe.used = 1;
+	if(write) {
+		tlbe.dirty = 1;
+		current_pagetable[vpn].dirty = 1;
+	}
+	return pfn;
 }
 
