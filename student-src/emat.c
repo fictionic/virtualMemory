@@ -13,16 +13,26 @@
  */
 
 double compute_emat_all() {
-   /* FIX ME - Compute the average memory access time, including required page faults
-    * that occur when loading a new process.
-    */
+	/* FIX ME - Compute the average memory access time, including required page faults
+	 * that occur when loading a new process.
+	 */
 
-   return 0;
+	double tlb_time = (count_tlbhits) * MEMORY_ACCESS_TIME;
+	double ram_time = 2 * (count_reads + count_writes) * MEMORY_ACCESS_TIME;
+	double disk_time = (count_pagefaults) * (DISK_ACCESS_TIME + MEMORY_ACCESS_TIME);
+	double total = (ram_time + disk_time) / (count_writes + count_reads);
+	return total;
+
 }
 
 double compute_emat_unforced() {
-   /* FIX ME - Compute the average memory access time NOT including required faults
-    */
+	/* FIX ME - Compute the average memory access time NOT including required faults
+	*/
 
-	return 0;
+	double tlb_time = (count_tlbhits) * MEMORY_ACCESS_TIME;
+	double ram_time = 2 * (count_reads + count_writes) * MEMORY_ACCESS_TIME;
+	double disk_time = (count_diskaccesses) * (DISK_ACCESS_TIME + MEMORY_ACCESS_TIME);
+	double total = (ram_time + disk_time) / (count_writes + count_reads);
+	return total;
+
 }
